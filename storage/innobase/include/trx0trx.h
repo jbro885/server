@@ -487,9 +487,9 @@ struct trx_lock_t
 					check for this cancel of a transaction's
 					locks and avoid reacquiring the trx
 					mutex to prevent recursive deadlocks.
-					Protected by both the lock sys mutex
+					Protected by both lock_sys.mutex
 					and the trx_t::mutex. */
-  /** number of record locks; writes are protected by lock_sys.mutex */
+  /** number of record locks; writers use LockGuard or LockMutexGuard */
   ulint n_rec_locks;
 };
 
