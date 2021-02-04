@@ -85,7 +85,7 @@ ENDIF(UNIX)
 # BSON: the new handling of JSON data included temporarily for testing
 #
 
-OPTION(CONNECT_WITH_BSON "Compile CONNECT storage engine with BSON support" ON)
+OPTION(CONNECT_WITH_BSON "Compile CONNECT storage engine with BSON support" OFF)
 
 IF(CONNECT_WITH_BSON)
   SET(CONNECT_SOURCES ${CONNECT_SOURCES}
