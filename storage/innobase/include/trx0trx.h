@@ -264,7 +264,7 @@ trx_print_latched(
 
 /**********************************************************************//**
 Prints info about a transaction.
-Acquires and releases lock_sys.mutex. */
+Acquires and releases lock_sys.latch. */
 void
 trx_print(
 /*======*/
@@ -417,11 +417,11 @@ The transaction must have mysql_thd assigned. */
 typedef std::vector<ib_lock_t*, ut_allocator<ib_lock_t*> >	lock_list;
 
 /** The locks and state of an active transaction. Protected by
-lock_sys.mutex, trx->mutex or both. */
+lock_sys.latch, trx->mutex or both. */
 struct trx_lock_t
 {
   /** Lock request being waited for.
-  Set to nonnull when holding lock_sys.mutex, lock_sys.wait_mutex and
+  Set to nonnull when holding lock_sys.latch, lock_sys.wait_mutex and
   trx->mutex, by the thread that is executing the transaction.
   Set to nullptr when holding lock_sys.wait_mutex. */
   Atomic_relaxed<lock_t*> wait_lock;
@@ -435,13 +435,13 @@ struct trx_lock_t
 					by lock_deadlock_recursive(). */
   /** When the transaction decides to wait for a lock, it clears this;
   set if another transaction chooses this transaction as a victim in deadlock
-  resolution. Protected by lock_sys.mutex and lock_sys.wait_mutex. */
+  resolution. Protected by lock_sys.latch and lock_sys.wait_mutex. */
   bool was_chosen_as_deadlock_victim;
 	que_thr_t*	wait_thr;	/*!< query thread belonging to this
 					trx that is in waiting
 					state. For threads suspended in a
 					lock wait, this is protected by
-					lock_sys.mutex. Otherwise, this may
+					lock_sys.latch. Otherwise, this may
 					only be modified by the thread that is
 					serving the running transaction. */
 #ifdef WITH_WSREP
@@ -465,12 +465,12 @@ struct trx_lock_t
 	unsigned	table_cached;
 
 	mem_heap_t*	lock_heap;	/*!< memory heap for trx_locks;
-					protected by lock_sys.mutex */
+					protected by lock_sys.latch */
 
 	trx_lock_list_t trx_locks;	/*!< locks requested by the transaction;
 					insertions are protected by trx->mutex
-					and lock_sys.mutex; removals are
-					protected by lock_sys.mutex */
+					and lock_sys.latch; removals are
+					protected by lock_sys.latch */
 
 	lock_list	table_locks;	/*!< All table locks requested by this
 					transaction, including AUTOINC locks */
@@ -487,7 +487,7 @@ struct trx_lock_t
 					check for this cancel of a transaction's
 					locks and avoid reacquiring the trx
 					mutex to prevent recursive deadlocks.
-					Protected by both lock_sys.mutex
+					Protected by both lock_sys.latch
 					and the trx_t::mutex. */
   /** number of record locks; writers use LockGuard or LockMutexGuard */
   ulint n_rec_locks;
@@ -607,7 +607,7 @@ transactions (state == TRX_STATE_ACTIVE && is_recovered)
 while the system is already processing new user transactions (!is_recovered).
 
 * trx_print_low() may access transactions not associated with the current
-thread. The caller must be holding lock_sys.mutex.
+thread. The caller must be holding lock_sys.latch.
 
 * When a transaction handle is in the trx_sys.trx_list, some of its fields
 must not be modified without holding trx->mutex.
@@ -615,7 +615,7 @@ must not be modified without holding trx->mutex.
 * The locking code (in particular, lock_deadlock_recursive() and
 lock_rec_convert_impl_to_expl()) will access transactions associated
 to other connections. The locks of transactions are protected by
-lock_sys.mutex (insertions also by trx->mutex). */
+lock_sys.latch (insertions also by trx->mutex). */
 
 /** Represents an instance of rollback segment along with its state variables.*/
 struct trx_undo_ptr_t {
@@ -672,7 +672,7 @@ public:
   trx_id_t id;
 
   /** mutex protecting state and some of lock
-  (some are protected by lock_sys.mutex) */
+  (some are protected by lock_sys.latch) */
   srw_mutex mutex;
 
   /** State of the trx from the point of view of concurrency control
@@ -738,7 +738,7 @@ public:
   Transitions to COMMITTED are protected by trx_t::mutex. */
   Atomic_relaxed<trx_state_t> state;
 
-  /** The locks of the transaction. Protected by lock_sys.mutex
+  /** The locks of the transaction. Protected by lock_sys.latch
   (insertions also by trx_t::mutex). */
   trx_lock_t lock;
 
@@ -890,7 +890,7 @@ public:
 					also in the lock list trx_locks. This
 					vector needs to be freed explicitly
 					when the trx instance is destroyed.
-					Protected by lock_sys.mutex. */
+					Protected by lock_sys.latch. */
 	/*------------------------------*/
 	bool		read_only;	/*!< true if transaction is flagged
 					as a READ-ONLY transaction.
