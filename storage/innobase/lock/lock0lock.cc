@@ -1839,8 +1839,7 @@ static void lock_wait_end(trx_t *trx)
 {
   mysql_mutex_assert_owner(&lock_sys.wait_mutex);
 
-  que_thr_t *thr= trx->lock.wait_thr;
-  ut_ad(thr);
+  ut_ad(trx->lock.wait_thr);
   if (trx->lock.was_chosen_as_deadlock_victim)
   {
     trx->error_state= DB_DEADLOCK;
